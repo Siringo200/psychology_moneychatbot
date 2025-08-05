@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psychology of Money Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <!-- Background Animation -->
+    <div class="background-animation">
+        <div class="floating-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+                <h1>Psychology of Money</h1>
+            </div>
+            <div class="clock-widget">
+                <div class="time" id="currentTime"></div>
+                <div class="date" id="currentDate"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Chat Container -->
+    <main class="chat-container">
+        <div class="chat-header">
+            <div class="bot-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="bot-info">
+                <h2>Money Psychology Assistant</h2>
+                <p class="status"><span class="status-dot"></span>Online</p>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                <div class="message bot-message">
+                    <div class="message-content">
+                        <p>👋 Hello! I'm your Psychology of Money assistant. Ask me anything about financial psychology, money mindset, or investment behavior!</p>
+                    </div>
+                    <div class="message-time" id="welcomeTime"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <span class="typing-text">Assistant is typing...</span>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="quick-suggestions">
+                <button class="suggestion-btn" data-text="What is the psychology of money?">
+                    <i class="fas fa-lightbulb"></i> Psychology of Money
+                </button>
+                <button class="suggestion-btn" data-text="How do emotions affect financial decisions?">
+                    <i class="fas fa-heart"></i> Emotions & Finance
+                </button>
+                <button class="suggestion-btn" data-text="What are common money biases?">
+                    <i class="fas fa-eye"></i> Money Biases
+                </button>
+            </div>
+            
+            <div class="input-wrapper">
+                <button class="attachment-btn" id="attachBtn">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <input type="text" id="messageInput" placeholder="Ask about psychology of money..." autocomplete="off">
+                <button class="send-btn" id="sendBtn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loader">
+            <div class="loader-circle"></div>
+            <p>Connecting to assistant...</p>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            setWelcomeTime();
+
+            // Update clock function
+            function updateClock() {
+                const now = new Date();
+                const timeOptions = { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit',
+                    hour12: true 
+                };
+                const dateOptions = { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                };
+                
+                $('#currentTime').text(now.toLocaleTimeString('en-US', timeOptions));
+                $('#currentDate').text(now.toLocaleDateString('en-US', dateOptions));
+            }
+
+            function setWelcomeTime() {
+                const now = new Date();
+                $('#welcomeTime').text(now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+            }
+
+            // Quick suggestions
+            $('.suggestion-btn').click(function() {
+                const text = $(this).data('text');
+                $('#messageInput').val(text);
+                sendMessage();
+            });
+
+            // Send message function
+            function sendMessage() {
+                const message = $('#messageInput').val().trim();
+                if (message === '') return;
+
+                // Add user message
+                addMessage(message, 'user');
+                $('#messageInput').val('');
+
+                // Show typing indicator
+                showTypingIndicator();
+
+                // Send to backend
+                $.post('/get', {msg: message})
+                    .done(function(response) {
+                        hideTypingIndicator();
+                        addMessage(response, 'bot');
+                    })
+                    .fail(function() {
+                        hideTypingIndicator();
+                        addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+                    });
+            }
+
+            // Add message to chat
+            function addMessage(message, sender) {
+                const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const messageClass = sender === 'user' ? 'user-message' : 'bot-message';
+                const icon = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+                
+                const messageHtml = `
+                    <div class="message ${messageClass}">
+                        <div class="message-avatar">${icon}</div>
+                        <div class="message-content">
+                            <p>${message}</p>
+                        </div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                `;
+                
+                $('#chatMessages').append(messageHtml);
+                scrollToBottom();
+            }
+
+            function showTypingIndicator() {
+                $('#typingIndicator').show();
+                scrollToBottom();
+            }
+
+            function hideTypingIndicator() {
+                $('#typingIndicator').hide();
+            }
+
+            function scrollToBottom() {
+                $('#chatMessages').animate({
+                    scrollTop: $('#chatMessages')[0].scrollHeight
+                }, 300);
+            }
+
+            // Send button click
+            $('#sendBtn').click(sendMessage);
+
+            // Enter key press
+            $('#messageInput').keypress(function(e) {
+                if (e.which === 13 && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Input focus effects
+            $('#messageInput').focus(function() {
+                $('.input-wrapper').addClass('focused');
+            }).blur(function() {
+                $('.input-wrapper').removeClass('focused');
+            });
+        });
+    </script>
+</body>
+</html>
